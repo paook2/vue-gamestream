@@ -1,4 +1,7 @@
 <script setup>
+import { ref, onMounted } from 'vue'
+
+const videoRef = ref(null)
 
 defineProps({
   video: {
@@ -7,6 +10,9 @@ defineProps({
   },
 })
 
+onMounted(()=> {
+  videoRef.value.play()
+})
 </script>
 
 <template>

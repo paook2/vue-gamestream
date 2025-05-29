@@ -2,6 +2,7 @@
 import GameGallery from './GameGallery.vue'
 import GameTag from './GameTag.vue'
 import IconPlayCircle from '../Icons/IconPlayCircle.vue'
+import { modalStore } from '../store/modalStore'
 
 defineProps({
   game: {
@@ -26,7 +27,9 @@ defineProps({
       </h3>
       <div class="game-card__tags">
         <GameTag v-for="tag in game.tags" :key="tag" :tag="tag" />
-        <button class="game-card__video-icon">
+        <button @click.prevent="()=>{
+            modalStore.openModal(game)
+          }" class="game-card__video-icon">
           <IconPlayCircle />
         </button>
       </div>

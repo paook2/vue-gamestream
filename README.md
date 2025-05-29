@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # gamestream
 
 This template should help get you started developing with Vue 3 in Vite.
@@ -33,3 +34,7 @@ npm run build
 ```sh
 npm run lint
 ```
+=======
+# vue-gamestream
+Curso de https://platzi.com/cursos/vuejs/despliegue-en-netlify-de-aplicaciones-vuejs/
+>>>>>>> 437e616b157d410ded07429e0bf57b4279e8a8b3

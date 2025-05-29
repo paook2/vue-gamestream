@@ -1,12 +1,13 @@
 <script setup>
+import { modalStore } from '../store/modalStore'
 import GameVideoPlayer from './GameVideoPlayer.vue'
 </script>
 
 <template>
-  <div class="game-modal" v-if="modal.state.show">
-    <div class="game-modal__backdrop" @click="modal.closeModal" />
+  <div class="game-modal" v-if="modalStore.state.show">
+    <div class="game-modal__backdrop" @click="modalStore.closeModal" />
     <div class="game-modal__content">
-      <GameVideoPlayer  />
+      <GameVideoPlayer :video="modalStore.state.game.videosUrls.tablet" />
     </div>
   </div>
 </template>
