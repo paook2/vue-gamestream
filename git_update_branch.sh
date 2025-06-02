@@ -3,6 +3,17 @@ set -x # Activa el modo de depuración: imprime cada comando que se ejecuta.
 
 # Este script automatiza el proceso de fusionar una rama principal en otra rama,
 # hacer commit y push, dejando la rama limpia sin cambios pendientes.
+# Recibe los siguientes argumentos:
+# $1: main_branch (nombre de la rama principal)
+# $2: target_branch (nombre de la rama a actualizar)
+# $3: untracked_commit_message (mensaje para commit de archivos sin seguimiento)
+# $4: local_commit_message (mensaje para commit de cambios locales)
+
+MAIN_BRANCH_PARAM="$1"
+TARGET_BRANCH_PARAM="$2"
+UNTRACKED_COMMIT_MSG_PARAM="${3:-feat: Added untracked files (automated)}" # Usar valor por defecto si no se pasa
+LOCAL_COMMIT_MSG_PARAM="${4:-feat: WIP changes before merge (automated)}" # Usar valor por defecto si no se pasa
+
 
 echo "--- Automatización de Fusión y Push en Git ---"
 
@@ -19,38 +30,27 @@ untracked_files=$(git ls-files --others --exclude-standard)
 if [ -n "$untracked_files" ]; then
     echo "Se encontraron los siguientes archivos sin seguimiento:"
     echo "$untracked_files"
-    read -p "¿Deseas añadir y commitear estos archivos ahora? (s/n): " confirm_add_untracked
-    if [[ "$confirm_add_untracked" =~ ^[Ss]$ ]]; then
-        echo "Añadiendo archivos sin seguimiento..."
-        git add .
+    # No preguntamos, asumimos que siempre quieres añadir y commitear.
+    echo "Añadiendo archivos sin seguimiento..."
+    git add .
+    if [ $? -ne 0 ]; then
+        echo "Error: No se pudieron añadir los archivos. Abortando."
+        exit 1
+    fi
+    echo "Realizando commit de los archivos sin seguimiento con mensaje: '$UNTRACKED_COMMIT_MSG_PARAM'..."
+    git commit -m "$UNTRACKED_COMMIT_MSG_PARAM"
+    if [ $? -ne 0 ]; then
+        echo "Error: No se pudo realizar el commit de los archivos. Abortando."
+        exit 1
+    fi
+    echo "Archivos sin seguimiento commiteados exitosamente."
+    # Empujar estos cambios iniciales si estás en una rama existente
+    if [ "$current_branch_at_start" != "HEAD" ]; then
+        echo "Empujando cambios iniciales a 'origin/$current_branch_at_start'..."
+        git push origin "$current_branch_at_start"
         if [ $? -ne 0 ]; then
-            echo "Error: No se pudieron añadir los archivos. Abortando."
-            exit 1
+            echo "Advertencia: No se pudieron empujar los cambios iniciales. Puedes hacerlo manualmente después."
         fi
-        read -p "Ingresa un mensaje para el commit de estos archivos (por defecto: 'feat: Added untracked files'): " untracked_commit_message
-        if [ -z "$untracked_commit_message" ]; then
-            untracked_commit_message="feat: Added untracked files"
-        fi
-        echo "Realizando commit de los archivos sin seguimiento..."
-        git commit -m "$untracked_commit_message"
-        if [ $? -ne 0 ]; then
-            echo "Error: No se pudo realizar el commit de los archivos. Abortando."
-            exit 1
-        fi
-        echo "Archivos sin seguimiento commiteados exitosamente."
-        # Empujar estos cambios iniciales si estás en una rama existente
-        if [ "$current_branch_at_start" != "HEAD" ]; then # No es HEAD si estás en una rama
-            read -p "¿Deseas empujar estos cambios iniciales a 'origin/$current_branch_at_start'? (s/n): " confirm_push_initial
-            if [[ "$confirm_push_initial" =~ ^[Ss]$ ]]; then
-                echo "Empujando cambios iniciales..."
-                git push origin "$current_branch_at_start"
-                if [ $? -ne 0 ]; then
-                    echo "Advertencia: No se pudieron empujar los cambios iniciales. Puedes hacerlo manualmente después."
-                fi
-            fi
-        fi
-    else
-        echo "Archivos sin seguimiento ignorados por ahora. El script continuará."
     fi
 else
     echo "No se encontraron archivos sin seguimiento."
@@ -64,44 +64,15 @@ if ! git diff-index --quiet HEAD -- || ! git diff-files --quiet; then
     echo "Estado de Git:"
     git status --short # Muestra un resumen conciso del estado
 
-    # Ofrecer commit o stash
-    read -p "¿Deseas commitear estos cambios antes de la fusión? (s/n, por defecto: n para stash): " confirm_commit_local
-    if [[ "$confirm_commit_local" =~ ^[Ss]$ ]]; then
-        echo "Añadiendo todos los cambios locales para commit..."
-        git add .
-        if [ $? -ne 0 ]; then
-            echo "Error: No se pudieron añadir los cambios locales. Abortando."
-            exit 1
-        fi
-        read -p "Ingresa un mensaje para el commit de estos cambios (por defecto: 'feat: (WIP) cambios locales antes de fusionar main'): " local_commit_message
-        if [ -z "$local_commit_message" ]; then
-            local_commit_message="feat: (WIP) cambios locales antes de fusionar main"
-        fi
-        echo "Realizando commit de los cambios locales..."
-        git commit -m "$local_commit_message"
-        if [ $? -ne 0 ]; then
-            echo "Error: No se pudo realizar el commit de los cambios locales. Abortando."
-            exit 1
-        fi
-        echo "Cambios locales commiteados exitosamente."
-        SHOULD_POP_STASH="false" # No hay stash que hacer pop
-    else
-        read -p "¿Deseas hacer stash de estos cambios antes de la fusión? (s/n): " confirm_stash
-        if [[ "$confirm_stash" =~ ^[Ss]$ ]]; then
-            echo "Guardando cambios locales con git stash..."
-            git stash push -m "Automated stash before merge from main into $current_branch_at_start"
-            if [ $? -ne 0 ]; then
-                echo "Error: No se pudo realizar el stash. Abortando fusión."
-                exit 1
-            fi
-            echo "Cambios guardados en stash. Continuar con la fusión."
-            SHOULD_POP_STASH="true"
-        else
-            echo "Advertencia: Cambios locales no manejados. Si hay conflictos, la fusión podría fallar o dejar cambios pendientes."
-            SHOULD_POP_STASH="false"
-            # Continuar bajo el riesgo del usuario. Considera `exit 1` aquí si prefieres ser estricto.
-        fi
+    # No preguntamos si desea commitear o stash, siempre hacemos stash para mantener la rama limpia.
+    echo "Guardando cambios locales con git stash..."
+    git stash push -m "$LOCAL_COMMIT_MSG_PARAM (Automated Stash for merge into $current_branch_at_start)"
+    if [ $? -ne 0 ]; then
+        echo "Error: No se pudo realizar el stash. Abortando fusión."
+        exit 1
     fi
+    echo "Cambios guardados en stash. Continuar con la fusión."
+    SHOULD_POP_STASH="true"
 else
     echo "No se encontraron cambios locales pendientes. El árbol de trabajo está limpio."
     SHOULD_POP_STASH="false"
@@ -110,29 +81,27 @@ echo "---"
 
 # --- Resto del script de fusión de ramas ---
 
-# 1. Preguntar por el nombre de la rama principal
-read -p "¿Cuál es el nombre de tu rama principal (ej: main, master)? " main_branch
+# Usar los parámetros recibidos
+main_branch="$MAIN_BRANCH_PARAM"
+target_branch="$TARGET_BRANCH_PARAM"
 
-# Validar que la rama principal no esté vacía
+# Validar que la rama principal no esté vacía (ya se valida en el script principal)
 if [ -z "$main_branch" ]; then
-    echo "Error: El nombre de la rama principal no puede estar vacío."
+    echo "Error: El nombre de la rama principal no puede estar vacío. Abortando."
     if [ "$SHOULD_POP_STASH" == "true" ]; then git stash pop; fi
     exit 1
 fi
 
-# 2. Preguntar por el nombre de la segunda rama a actualizar
-read -p "¿Cuál es el nombre de la rama que quieres actualizar desde la principal? " target_branch
-
-# Validar que la rama objetivo no esté vacía
+# Validar que la rama objetivo no esté vacía (ya se valida en el script principal)
 if [ -z "$target_branch" ]; then
-    echo "Error: El nombre de la rama a actualizar no puede estar vacío."
+    echo "Error: El nombre de la rama a actualizar no puede estar vacío. Abortando."
     if [ "$SHOULD_POP_STASH" == "true" ]; then git stash pop; fi
     exit 1
 fi
 
 # Validar que las ramas no sean las mismas
 if [ "$main_branch" == "$target_branch" ]; then
-    echo "Error: Las ramas principal y objetivo no pueden ser la misma."
+    echo "Error: Las ramas principal y objetivo no pueden ser la misma. Abortando."
     if [ "$SHOULD_POP_STASH" == "true" ]; then git stash pop; fi
     exit 1
 fi
