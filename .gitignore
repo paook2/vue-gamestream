@@ -10,7 +10,10 @@ lerna-debug.log*
 .git-tools
 start_vue_automator.sh
 start_vue_terminal.sh
+git_update_branch.sh
 automatorRunAll.app
+.prettierrc.json
+
 
 # node_modules
 .DS_Store
