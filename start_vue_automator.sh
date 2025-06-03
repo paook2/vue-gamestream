@@ -1,5 +1,5 @@
 #!/bin/zsh
-
+ 
 export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH"
 
 PROJECT_PATH="$HOME/Downloads/Paola/LifeFile/Projects/vueJs/vue-gamestream"
@@ -12,7 +12,7 @@ cd "$PROJECT_PATH" || { echo "❌ No se pudo acceder al directorio del proyecto.
 mkdir -p "$LOG_DIR" || { echo "❌ No se pudo crear la carpeta de logs en '$LOG_DIR'."; exit 1; }
 : > "$NPM_OUTPUT_LOG"
 
-# 🟡 Preguntar si se debe ejecutar git.sh
+# 🟡 NUEVO: Preguntar si se debe ejecutar git.sh
 SHOULD_RUN_GIT=$(osascript -e 'display dialog "¿Quieres ejecutar el script \"git.sh\"?" buttons {"No", "Sí"} default button "Sí" with icon caution' -e 'button returned of result')
 
 if [[ "$SHOULD_RUN_GIT" == "Sí" ]]; then
@@ -20,7 +20,7 @@ if [[ "$SHOULD_RUN_GIT" == "Sí" ]]; then
 
   if [ -f "$GIT_SCRIPT" ]; then
     echo "🔄 Ejecutando script: '$GIT_SCRIPT'..."
-    "$GIT_SCRIPT" # Esto ejecutará el git.sh corregido
+    "$GIT_SCRIPT"
     if [ $? -eq 0 ]; then
       echo "✅ Script 'git.sh' completado."
     else
@@ -33,8 +33,8 @@ else
   echo "⏩ Saltando ejecución de 'git.sh'."
 fi
 
-# Ejecutar npm run dev desde script temporal
-echo "📦 Ejecutando 'npm run dev' en nueva pestaña de Terminal..."
+# Continuar con npm run dev
+echo "📦 Ejecutando 'npm run dev' en nueva ventana de Terminal..."
 
 NPM_BIN_PATH="$(which npm)"
 if [ -z "$NPM_BIN_PATH" ]; then
@@ -51,29 +51,13 @@ EOF
 
 chmod +x "$TEMP_EXEC_SCRIPT"
 
-# 🟢 Terminal: nueva pestaña si ya hay ventana abierta
-COMMAND_TO_RUN_NPM="bash \"${TEMP_EXEC_SCRIPT}\""
-
 osascript <<EOF
 tell application "Terminal"
-    activate # Activa y trae Terminal al frente
-    delay 0.5 # Pausa para que la Terminal esté lista
-
-    if (count of windows) > 0 then
-        # Si la Terminal tiene ventanas abiertas, crea una nueva pestaña
-        tell application "Terminal" to do script "" in selected tab of the front window # Borra cualquier texto previo si lo hay
-        delay 0.2 # Pequeña pausa
-        tell application "System Events" to keystroke "t" using command down
-        delay 0.5 # Pausa para que la nueva pestaña se cree
-        do script "${COMMAND_TO_RUN_NPM}" in selected tab of the front window
-    else
-        # Si la Terminal no tiene ventanas, abre una nueva ventana
-        do script "${COMMAND_TO_RUN_NPM}"
-    end if
+    activate
+    do script "${TEMP_EXEC_SCRIPT}"
 end tell
 EOF
 
-# Esperar a que npm dev devuelva una URL
 echo "⌛ Esperando URL local..."
 URL_FOUND=false
 TIMEOUT=60

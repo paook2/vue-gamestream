@@ -102,24 +102,24 @@ echo "---"
 # 🔹 Abrir una pestaña nueva en Terminal con git status al final del script
 # Esto se ejecutará en la carpeta específica del proyecto vue-gamestream
 PROJECT_VUE_PATH="/Users/paolazapatagonzalez/Downloads/Paola/LifeFile/Projects/vueJs/vue-gamestream"
-COMMAND_TO_RUN="cd \"${PROJECT_VUE_PATH}\" && git status"
 
 osascript <<EOF
 tell application "Terminal"
-    activate # Asegura que Terminal esté activa y al frente
-    delay 0.5 # Pausa para que la Terminal esté lista
-
+    activate
     if (count of windows) > 0 then
-        # Si la Terminal tiene ventanas abiertas, crea una nueva pestaña
-        # 'do script ""' primero para asegurar que la nueva pestaña esté vacía, luego el comando real.
-        tell application "Terminal" to do script "" in selected tab of the front window
-        delay 0.2 # Pequeña pausa
+        # Si la Terminal está abierta, abre una nueva pestaña
         tell application "System Events" to keystroke "t" using command down
-        delay 0.5 # Pausa para que la nueva pestaña se cree
-        do script "${COMMAND_TO_RUN}" in selected tab of the front window
+        delay 0.5
+        # Ejecuta 'cd <ruta_proyecto> && git status' en la nueva pestaña.
+        # 'ignoring application responses' permite que el script de shell continúe inmediatamente.
+        ignoring application responses
+            do script "cd \"${PROJECT_VUE_PATH}\" && git status" in selected tab of the front window
+        end ignoring
     else
-        # Si la Terminal no tiene ventanas, abre una nueva ventana
-        do script "${COMMAND_TO_RUN}"
+        # Si la Terminal no está abierta, abre una nueva ventana y ejecuta el comando.
+        ignoring application responses
+            do script "cd \"${PROJECT_VUE_PATH}\" && git status"
+        end ignoring
     end if
 end tell
 EOF
