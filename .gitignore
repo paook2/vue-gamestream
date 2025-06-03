@@ -14,7 +14,6 @@ git_update_branch.sh
 automatorRunAll.app
 .prettierrc.json
 
-
 node_modules/
 .DS_Store
 # dist
