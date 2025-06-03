@@ -1,5 +1,5 @@
 #!/bin/zsh
- 
+
 export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH"
 
 PROJECT_PATH="$HOME/Downloads/Paola/LifeFile/Projects/vueJs/vue-gamestream"
@@ -12,7 +12,7 @@ cd "$PROJECT_PATH" || { echo "❌ No se pudo acceder al directorio del proyecto.
 mkdir -p "$LOG_DIR" || { echo "❌ No se pudo crear la carpeta de logs en '$LOG_DIR'."; exit 1; }
 : > "$NPM_OUTPUT_LOG"
 
-# 🟡 NUEVO: Preguntar si se debe ejecutar git.sh
+# 🟡 Preguntar si se debe ejecutar git.sh
 SHOULD_RUN_GIT=$(osascript -e 'display dialog "¿Quieres ejecutar el script \"git.sh\"?" buttons {"No", "Sí"} default button "Sí" with icon caution' -e 'button returned of result')
 
 if [[ "$SHOULD_RUN_GIT" == "Sí" ]]; then
@@ -20,7 +20,7 @@ if [[ "$SHOULD_RUN_GIT" == "Sí" ]]; then
 
   if [ -f "$GIT_SCRIPT" ]; then
     echo "🔄 Ejecutando script: '$GIT_SCRIPT'..."
-    "$GIT_SCRIPT"
+    "$GIT_SCRIPT" # Esto ejecutará el git.sh corregido
     if [ $? -eq 0 ]; then
       echo "✅ Script 'git.sh' completado."
     else
@@ -33,8 +33,8 @@ else
   echo "⏩ Saltando ejecución de 'git.sh'."
 fi
 
-# Continuar con npm run dev
-echo "📦 Ejecutando 'npm run dev' en nueva ventana de Terminal..."
+# Ejecutar npm run dev desde script temporal
+echo "📦 Ejecutando 'npm run dev' en nueva pestaña de Terminal..."
 
 NPM_BIN_PATH="$(which npm)"
 if [ -z "$NPM_BIN_PATH" ]; then
@@ -51,13 +51,21 @@ EOF
 
 chmod +x "$TEMP_EXEC_SCRIPT"
 
+# 🟢 Terminal: nueva pestaña si ya hay ventana abierta
 osascript <<EOF
 tell application "Terminal"
     activate
-    do script "${TEMP_EXEC_SCRIPT}"
+    if (count of windows) > 0 then
+        tell application "System Events" to keystroke "t" using command down
+        delay 0.5
+        do script "bash \"${TEMP_EXEC_SCRIPT}\"" in selected tab of the front window
+    else
+        do script "bash \"${TEMP_EXEC_SCRIPT}\""
+    end if
 end tell
 EOF
 
+# Esperar a que npm dev devuelva una URL
 echo "⌛ Esperando URL local..."
 URL_FOUND=false
 TIMEOUT=60

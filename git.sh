@@ -107,19 +107,13 @@ osascript <<EOF
 tell application "Terminal"
     activate
     if (count of windows) > 0 then
-        # Si la Terminal está abierta, abre una nueva pestaña
         tell application "System Events" to keystroke "t" using command down
         delay 0.5
-        # Ejecuta 'cd <ruta_proyecto> && git status' en la nueva pestaña.
-        # 'ignoring application responses' permite que el script de shell continúe inmediatamente.
-        ignoring application responses
-            do script "cd \"${PROJECT_VUE_PATH}\" && git status" in selected tab of the front window
-        end ignoring
+        # Comando para ejecutar git status en la ruta específica
+        do script "cd \"${PROJECT_VUE_PATH}\" && git status" in selected tab of the front window
     else
-        # Si la Terminal no está abierta, abre una nueva ventana y ejecuta el comando.
-        ignoring application responses
-            do script "cd \"${PROJECT_VUE_PATH}\" && git status"
-        end ignoring
+        # Si la Terminal no está abierta, abre una nueva ventana y ejecuta el comando
+        do script "cd \"${PROJECT_VUE_PATH}\" && git status"
     end if
 end tell
 EOF
