@@ -56,10 +56,13 @@ osascript <<EOF
 tell application "Terminal"
     activate
     if (count of windows) > 0 then
+        # Si la Terminal está abierta, abre una nueva pestaña
         tell application "System Events" to keystroke "t" using command down
         delay 0.5
+        # Ejecuta el script temporal de npm en la nueva pestaña
         do script "${TEMP_EXEC_SCRIPT}" in selected tab of the front window
     else
+        # Si la Terminal no está abierta, abre una nueva ventana y ejecuta el script temporal
         do script "${TEMP_EXEC_SCRIPT}"
     end if
 end tell

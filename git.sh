@@ -1,5 +1,22 @@
 #!/bin/zsh
 
+# 🔹 Abrir una pestaña nueva en Terminal con git status al inicio del script
+osascript <<EOF
+tell application "Terminal"
+    activate
+    if (count of windows) > 0 then
+        # Si la Terminal está abierta, abre una nueva pestaña
+        tell application "System Events" to keystroke "t" using command down
+        delay 0.5
+        # Ejecuta git status en la nueva pestaña
+        do script "cd '$PWD'; git status" in selected tab of the front window
+    else
+        # Si la Terminal no está abierta, abre una nueva ventana y ejecuta git status
+        do script "cd '$PWD'; git status"
+    end if
+end tell
+EOF
+
 osascript -e 'display dialog "Bienvenido a GIT" with title "Mensaje de git.sh" buttons {"OK"} default button 1'
 
 echo "--- Automatización de Fusión y Push en Git ---"
@@ -98,19 +115,5 @@ if [ "$current_branch" != "$TARGET_BRANCH" ] && [ -n "$current_branch" ]; then
 fi
 
 echo "---"
-
-# 🔹 Abrir una pestaña nueva en Terminal con git status
-osascript <<EOF
-tell application "Terminal"
-    activate
-    if (count of windows) > 0 then
-        tell application "System Events" to keystroke "t" using command down
-        delay 0.5
-        do script "cd '$PWD'; git status" in selected tab of the front window
-    else
-        do script "cd '$PWD'; git status"
-    end if
-end tell
-EOF
 
 exit 0
