@@ -27,7 +27,6 @@ if [[ "$SHOULD_RUN_HOLA" == "Sí" ]]; then
 
   if [ -f "$HOLA_SCRIPT" ]; then
     echo "🔄 Ejecutando script: '$HOLA_SCRIPT'..."
-    # Ejecuta el script git.sh directamente para ver su salida en la consola
     "$HOLA_SCRIPT"
     if [ $? -eq 0 ]; then
       echo "✅ Script 'git.sh' completado."
@@ -58,23 +57,29 @@ fi
 sleep 2 # Pequeña pausa para permitir que Sublime se inicie
 
 echo "📦 Ejecutando 'npm run dev'..."
-# Ejecuta npm run dev directamente. Su salida se mostrará en la consola del Automator.
-# No redirijas a un archivo si quieres ver la salida en vivo.
-npm run dev &
+# Captura la salida de npm en un archivo de log para luego buscar la URL
+npm run dev > "$PROJECT_PATH/logs/npm_output.log" 2>&1 &
 NPM_PID=$! # Guarda el PID de npm para poder matarlo si es necesario
 
-# NOTA: Sin la redirección a un archivo, el script ya no puede "leer"
-# la URL automáticamente de un log. Necesitarás abrir el navegador manualmente
-# o usar otro método para capturar la URL (por ejemplo, esperar un tiempo fijo).
+echo "Esperando la URL local..."
+URL_FOUND=false
+TIMEOUT=60 # Esperar hasta 60 segundos por la URL
 
-# Como ya no se lee de un log, las siguientes líneas para esperar y abrir la URL
-# basándose en el log ya no funcionarán con este cambio.
-# Las dejaremos comentadas o las quitaremos, ya que el objetivo es ver la salida en vivo.
+for i in $(seq 1 $TIMEOUT); do
+  if grep -q "Local:" "$PROJECT_PATH/logs/npm_output.log"; then
+    url=$(grep "Local:" "$PROJECT_PATH/logs/npm_output.log" | grep -o 'http://[^ ]*' | head -1)
+    if [[ -n "$url" ]]; then
+      echo "🌐 Abriendo navegador en $url"
+      open "$url"
+      URL_FOUND=true
+      break
+    fi
+  fi
+  sleep 1
+done
 
-# Si aún necesitas abrir la URL automáticamente y ver la consola,
-# la forma más robusta es ejecutar 'npm run dev' en una nueva ventana de terminal
-# y que el script principal siga un flujo diferente.
+if [ "$URL_FOUND" = false ]; then
+  echo "❌ No se encontró la URL local después de $TIMEOUT segundos. Revisa $PROJECT_PATH/logs/npm_output.log para errores."
+fi
 
-echo "El servidor de desarrollo Vue se está iniciando en segundo plano. La salida se mostrará aquí."
-echo "Busca manualmente la URL local en la salida de la consola."
 echo "Script finalizado. El servidor de desarrollo Vue debería estar ejecutándose."

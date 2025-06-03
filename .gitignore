@@ -8,6 +8,8 @@ git.sh
 automatorRunAll.app
 run.app/*
 .prettierrc.json
+start_vue_automator.sh
+start_vue_terminal.sh
 
 node_modules/
 .DS_Store
