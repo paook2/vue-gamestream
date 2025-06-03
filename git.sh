@@ -9,12 +9,59 @@ echo "--- Automatización de Fusión y Push en Git ---"
 
 ---
 
+## Limpieza de Archivos Trackeados que Deberían ser Ignorados
+
+SHOULD_CLEAN_TRACKED=$(osascript -e 'display dialog "¿Quieres limpiar el repositorio de archivos como node_modules o .prettierrc.json que deberían estar ignorados?" buttons {"No", "Sí"} default button "No" with icon caution' -e 'button returned of result')
+
+if [[ "$SHOULD_CLEAN_TRACKED" == "Sí" ]]; then
+  echo "Iniciando proceso de limpieza de archivos trackeados ignorados..."
+
+  declare -a FILES_TO_UNTRACK=(
+    "node_modules/"
+    ".prettierrc.json"
+    "dist/"
+    "build/"
+    "*.log"
+  )
+
+  for item in "${FILES_TO_UNTRACK[@]}"; do
+    if git ls-files --error-unmatch "$item" &>/dev/null; then
+      echo "Des-trackeando '$item'..."
+      git rm -r --cached "$item" || echo "Advertencia: No se pudo des-trackear '$item'. Puede que no estuviera trackeado o hubo un error."
+    else
+      echo "'$item' no está trackeado o ya ha sido des-trackeado. Saltando."
+    fi
+  done
+
+  if ! git diff --cached --exit-code; then
+    echo "Realizando commit de la limpieza de archivos ignorados..."
+    git commit -m "chore: Stop tracking ignored files/folders" || { osascript -e "display alert \"Error: No se pudo realizar el commit de la limpieza.\" as critical"; exit 1; }
+    echo "Archivos des-trackeados y commiteados exitosamente."
+    
+    current_branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
+    if [ "$current_branch" != "HEAD" ] && [ -n "$current_branch" ]; then
+      SHOULD_PUSH_CLEANUP=$(osascript -e "display dialog \"¿Deseas empujar estos cambios de limpieza a 'origin/$current_branch'?\" buttons {\"No\", \"Sí\"} default button \"Sí\" with icon caution" -e 'button returned of result')
+      if [[ "$SHOULD_PUSH_CLEANUP" == "Sí" ]]; then
+        echo "Empujando cambios de limpieza..."
+        git push origin "$current_branch" || echo "Advertencia: No se pudieron empujar los cambios de limpieza. Puedes hacerlo manualmente."
+      fi
+    fi
+  else
+    echo "No se encontraron archivos trackeados que necesiten limpieza."
+  fi
+else
+  echo "⏩ Saltando la limpieza de archivos trackeados ignorados."
+fi
+
+echo "---"
+
+---
+
 ## Manejo de Archivos sin Seguimiento al Inicio
 
 echo ""
 echo "Verificando archivos sin seguimiento (untracked files)..."
 
-# Obtener archivos sin seguimiento de forma más robusta
 untracked_files=$(git status --porcelain | grep "^??" | awk '{print $2}')
 
 if [ -n "$untracked_files" ]; then
@@ -37,9 +84,8 @@ if [ -n "$untracked_files" ]; then
     git commit -m "$UNTRACKED_COMMIT_MSG" || { echo "Error: No se pudo realizar el commit de los archivos. Abortando." >&2; exit 1; }
     echo "Archivos sin seguimiento commiteados exitosamente."
 
-    # Empujar estos cambios iniciales si estás en una rama existente
     current_branch_before_ops=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
-    if [ "$current_branch_before_ops" != "HEAD" ] && [ -n "$current_branch_before_ops" ]; then # No es HEAD si estás en una rama
+    if [ "$current_branch_before_ops" != "HEAD" ] && [ -n "$current_branch_before_ops" ]; then
       SHOULD_PUSH_INITIAL=$(osascript -e "display dialog \"¿Deseas empujar estos cambios iniciales a 'origin/$current_branch_before_ops'?\" buttons {\"No\", \"Sí\"} default button \"Sí\" with icon caution" -e 'button returned of result')
       if [[ "$SHOULD_PUSH_INITIAL" == "Sí" ]]; then
         echo "Empujando cambios iniciales..."
@@ -58,25 +104,20 @@ echo "---"
 
 ## Proceso de Fusión de Ramas
 
-# 1. Preguntar por el nombre de la rama principal
 MAIN_BRANCH=$(osascript -e 'try' -e '  set T to text returned of (display dialog "Ingresa el nombre de tu rama principal (ej: main, master):" default answer "main")' -e '  return T' -e 'on error number -128' -e '  return ""' -e 'end try')
 
-# Validar que la rama principal no esté vacía
 if [ -z "$MAIN_BRANCH" ]; then
   osascript -e 'display alert "Error: El nombre de la rama principal no puede estar vacío." as warning'
   exit 1
 fi
 
-# 2. Preguntar por el nombre de la segunda rama a actualizar
 TARGET_BRANCH=$(osascript -e 'try' -e '  set T to text returned of (display dialog "Ingresa el nombre de la rama que quieres actualizar desde la principal:" default answer "dev")' -e '  return T' -e 'on error number -128' -e '  return ""' -e 'end try')
 
-# Validar que la rama objetivo no esté vacía
 if [ -z "$TARGET_BRANCH" ]; then
   osascript -e 'display alert "Error: El nombre de la rama a actualizar no puede estar vacío." as warning'
   exit 1
 fi
 
-# Validar que las ramas no sean las mismas
 if [ "$MAIN_BRANCH" == "$TARGET_BRANCH" ]; then
   osascript -e 'display alert "Error: Las ramas principal y objetivo no pueden ser la misma." as warning'
   exit 1
@@ -86,34 +127,27 @@ echo ""
 echo "Iniciando proceso de Git..."
 echo "--------------------------"
 
-# 3. Guardar la rama actual en caso de que necesitemos volver
 current_branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
 echo "Estás actualmente en la rama: $current_branch"
 
-# 4. Cambiar a la rama principal para asegurarnos de que esté actualizada
 echo "Cambiando a la rama principal: $MAIN_BRANCH"
 git checkout "$MAIN_BRANCH" || { osascript -e "display alert \"Error: No se pudo cambiar a la rama $MAIN_BRANCH. Asegúrate de que existe.\" as critical"; exit 1; }
 
 echo "Trayendo los últimos cambios de la rama principal..."
 git pull origin "$MAIN_BRANCH" || osascript -e "display alert \"Advertencia: No se pudieron traer los últimos cambios de la rama $MAIN_BRANCH. Puede que necesites resolver conflictos manualmente si hay.\" as warning"
 
-# 5. Cambiar a la rama objetivo para actualizarla
 echo "Cambiando a la rama objetivo: $TARGET_BRANCH"
 git checkout "$TARGET_BRANCH" || { osascript -e "display alert \"Error: No se pudo cambiar a la rama $TARGET_BRANCH. Asegúrate de que existe.\" as critical"; exit 1; }
 
-# 6. Fusionar la rama principal en la rama objetivo
 echo "Fusionando '$MAIN_BRANCH' en '$TARGET_BRANCH'..."
 git merge "$MAIN_BRANCH"
 
-# Verificar si hubo conflictos de fusión
 if [ $? -ne 0 ]; then
   echo ""
   osascript -e 'display alert "¡ATENCIÓN: Se produjeron conflictos de fusión! Por favor, resuelve los conflictos manualmente en tu editor de código. Después de resolverlos, guarda los cambios, añade los archivos con \'git add .\' y luego ejecuta \'git commit\' para completar la fusión. Una vez resueltos y con commit, puedes volver a ejecutar este script si lo deseas, o simplemente haz \'git push\' manualmente." as critical'
   exit 1
 fi
 
-# 7. Realizar el commit si hay cambios (en caso de que la fusión haya sido "fast-forward" o resuelta automáticamente)
-# Primero, verificamos si hay cambios pendientes de commit después del merge
 if git diff --cached --exit-code; then
   echo "No hay cambios pendientes de commit después de la fusión. Continuar..."
 else
@@ -121,7 +155,6 @@ else
   git commit -m "Merge branch '$MAIN_BRANCH' into '$TARGET_BRANCH'" || { osascript -e "display alert \"Error: No se pudo realizar el commit de la fusión.\" as critical"; exit 1; }
 fi
 
-# 8. Empujar los cambios a la rama remota
 echo "Empujando los cambios a 'origin/$TARGET_BRANCH'..."
 git push origin "$TARGET_BRANCH" || { osascript -e "display alert \"Error: No se pudo empujar los cambios a 'origin/$TARGET_BRANCH'.\" as critical"; exit 1; }
 
@@ -130,7 +163,6 @@ echo "----------------------------------------------------"
 osascript -e 'display dialog "¡Proceso completado exitosamente! Ahora, al ejecutar \'git status\', debería decir que no hay cambios por hacer." with title "Éxito" buttons {"OK"} default button 1'
 git status
 
-# Opcional: Volver a la rama original si el usuario no estaba en la rama objetivo
 if [ "$current_branch" != "$TARGET_BRANCH" ] && [ -n "$current_branch" ]; then
   SHOULD_RETURN_TO_ORIGINAL=$(osascript -e "display dialog \"¿Deseas volver a tu rama original: '$current_branch'?\" buttons {\"No\", \"Sí\"} default button \"Sí\" with icon caution" -e 'button returned of result')
   if [[ "$SHOULD_RETURN_TO_ORIGINAL" == "Sí" ]]; then
