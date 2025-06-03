@@ -65,17 +65,16 @@ echo "📦 Ejecutando 'npm run dev' en una nueva ventana de Terminal..."
 mkdir -p "$LOG_DIR" || { echo "❌ No se pudo crear la carpeta de logs en '$LOG_DIR'. Abortando." >&2; exit 1; }
 
 # Elimina el contenido anterior del log para una ejecución limpia
-# Esto es crucial para que `grep` no lea datos de una ejecución pasada
 echo "" > "$NPM_OUTPUT_LOG"
 
 # Comando para abrir una nueva Terminal y ejecutar npm run dev
-# Y redirigir la salida de npm run dev al archivo de log dentro de esa Terminal.
+# Usamos `zsh -l -c` para asegurar que el comando se ejecute en un shell de login (que carga ~/.zshrc)
+# pero de forma no interactiva, minimizando posibles problemas con compdef en ciertos contextos.
+# La salida de npm run dev se redirige al archivo de log dentro de esa Terminal.
 osascript -e 'tell application "Terminal" to activate' \
           -e '  tell application "System Events" to keystroke "t" using command down' \
           -e '  delay 1' \
-          -e '  tell application "Terminal" to do script "cd \"'${PROJECT_PATH}'\" && npm run dev > \"'${NPM_OUTPUT_LOG}'\" 2>&1" in front window' & # Se ejecuta en segundo plano en la Terminal, y Automator sigue
-                                                                                                    # Esto no usa el & final en el osascript, para que Automator sepa que Terminal inició.
-                                                                                                    # El `npm run dev` en sí ya tiene su & dentro del script ejecutado en Terminal.
+          -e '  tell application "Terminal" to do script "cd \"'${PROJECT_PATH}'\" && zsh -l -c \"npm run dev > \\\"'${NPM_OUTPUT_LOG}'\\\" 2>&1\"" in front window' &
 
 echo "Esperando que el servidor se inicie y obteniendo la URL local para abrir el navegador..."
 URL_FOUND=false
