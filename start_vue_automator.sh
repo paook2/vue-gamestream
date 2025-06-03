@@ -58,7 +58,7 @@ sleep 2 # Pequeña pausa para permitir que Sublime se inicie
 
 echo "📦 Ejecutando 'npm run dev'..."
 # Captura la salida de npm en un archivo de log para luego buscar la URL
-npm run dev > "$PROJECT_PATH/npm_output.log" 2>&1 &
+npm run dev > "$PROJECT_PATH/logs/npm_output.log" 2>&1 &
 NPM_PID=$! # Guarda el PID de npm para poder matarlo si es necesario
 
 echo "Esperando la URL local..."
@@ -66,8 +66,8 @@ URL_FOUND=false
 TIMEOUT=60 # Esperar hasta 60 segundos por la URL
 
 for i in $(seq 1 $TIMEOUT); do
-  if grep -q "Local:" "$PROJECT_PATH/npm_output.log"; then
-    url=$(grep "Local:" "$PROJECT_PATH/npm_output.log" | grep -o 'http://[^ ]*' | head -1)
+  if grep -q "Local:" "$PROJECT_PATH/logs/npm_output.log"; then
+    url=$(grep "Local:" "$PROJECT_PATH/logs/npm_output.log" | grep -o 'http://[^ ]*' | head -1)
     if [[ -n "$url" ]]; then
       echo "🌐 Abriendo navegador en $url"
       open "$url"
@@ -79,7 +79,7 @@ for i in $(seq 1 $TIMEOUT); do
 done
 
 if [ "$URL_FOUND" = false ]; then
-  echo "❌ No se encontró la URL local después de $TIMEOUT segundos. Revisa $PROJECT_PATH/npm_output.log para errores."
+  echo "❌ No se encontró la URL local después de $TIMEOUT segundos. Revisa $PROJECT_PATH/logs/npm_output.log para errores."
 fi
 
 echo "Script finalizado. El servidor de desarrollo Vue debería estar ejecutándose."
