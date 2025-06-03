@@ -7,7 +7,7 @@ export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:$PAT
 PROJECT_PATH="/Users/paolazapatagonzalez/Downloads/Paola/LifeFile/Projects/vueJs/vue-gamestream"
 PROJECT_NAME="vue-gamestream"
 LOG_DIR="$PROJECT_PATH/logs"
-NPM_OUTPUT_LOG="$LOG_DIR/npm_output.log" # <--- Ruta corregida aquí
+NPM_OUTPUT_LOG="$LOG_DIR/npm_output.log" # Todavía útil para depuración si la terminal no se abre
 
 # Asegúrate de que el script cambie al directorio del proyecto
 cd "$PROJECT_PATH" || { echo "❌ No se pudo entrar a la carpeta del proyecto. Abortando." >&2; exit 1 }
@@ -19,19 +19,12 @@ if [[ "$PROJECT_PATH" == *"/Downloads/"* ]]; then
 fi
 
 # --- Inicio del TRAP ---
+# Esta función se ejecutará cuando el script reciba una señal de terminación
 cleanup_on_exit() {
-  echo "🚨 Script terminando. Deteniendo proceso de npm run dev (PID: $NPM_PID)..."
-  if [ -n "$NPM_PID" ] && ps -p "$NPM_PID" > /dev/null; then
-    kill -TERM "$NPM_PID"
-    sleep 2
-    if ps -p "$NPM_PID" > /dev/null; then
-      echo "⚠️ El proceso de npm (PID: $NPM_PID) no se cerró amistosamente. Forzando cierre..."
-      kill -KILL "$NPM_PID"
-    fi
-  else
-    echo "ℹ️ No se encontró un proceso de npm run dev activo para detener."
-  fi
-  echo "✅ Limpieza completada."
+  echo "🚨 Script de Automatización principal terminando."
+  # No matamos npm_PID aquí directamente porque ahora se ejecutará en su propia ventana de Terminal.
+  # La terminal debería mantener el proceso vivo hasta que la cierres o se complete.
+  echo "✅ Script principal finalizado."
 }
 
 trap cleanup_on_exit INT TERM EXIT
@@ -40,7 +33,6 @@ trap cleanup_on_exit INT TERM EXIT
 ---
 
 # Preguntar si el usuario quiere ejecutar el archivo git.sh
-# Forzar la activación de System Events para asegurar que el diálogo se muestre al frente
 osascript -e 'tell application "System Events" to activate' > /dev/null 2>&1
 SHOULD_RUN_HOLA=$(osascript -e 'display dialog "¿Quieres ejecutar el script \"git.sh\"?" buttons {"No", "Sí"} default button "Sí" with icon caution' -e 'button returned of result')
 
@@ -67,6 +59,7 @@ fi
 
 echo "--- Continuando con el proyecto ---"
 
+# Abrir Sublime Text usando 'open -a' si 'subl' no funciona directamente.
 if ! command -v subl &> /dev/null; then
   echo "❌ 'subl' no está disponible directamente. Intentando abrir Sublime Text con 'open -a'."
   open -a "Sublime Text" "$PROJECT_PATH" &
@@ -75,20 +68,34 @@ else
   subl "$PROJECT_PATH" &
 fi
 
-sleep 2
+sleep 2 # Pequeña pausa para permitir que Sublime se inicie
 
-echo "📦 Ejecutando 'npm run dev'..."
+echo "📦 Ejecutando 'npm run dev' en una nueva ventana de Terminal..."
+
+# Crear la carpeta de logs si no existe (todavía útil para el caso de error de 'open -a Terminal')
 mkdir -p "$LOG_DIR" || { echo "❌ No se pudo crear la carpeta de logs en '$LOG_DIR'. Abortando." >&2; exit 1; }
 
-npm run dev > "$NPM_OUTPUT_LOG" 2>&1 & # <--- Se usa la variable de ruta corregida aquí
-NPM_PID=$!
 
-echo "Esperando la URL local..."
+# Comando para abrir una nueva Terminal y ejecutar npm run dev
+# Esto ejecutará `npm run dev` en una nueva ventana de Terminal y la mantendrá abierta
+osascript -e 'tell application "Terminal" to activate' \
+          -e '  tell application "System Events" to keystroke "t" using command down' \
+          -e '  delay 1' \
+          -e '  tell application "Terminal" to do script "cd \"'${PROJECT_PATH}'\" && npm run dev" in front window' \
+          > "$NPM_OUTPUT_LOG" 2>&1 & # Todavía redirigimos la salida del osascript para capturar errores si no abre la terminal.
+
+echo "Esperando que el servidor se inicie y obteniendo la URL local..."
 URL_FOUND=false
-TIMEOUT=60
+TIMEOUT=60 # Esperar hasta 60 segundos por la URL
 
 for i in $(seq 1 $TIMEOUT); do
-  if grep -q "Local:" "$NPM_OUTPUT_LOG"; then # <--- Se usa la variable de ruta corregida aquí
+  # Aquí leeremos del log que se genera en la Terminal si el comando osascript falla,
+  # o si queremos asegurar que la URL se capture incluso si la Terminal no queda visible.
+  # PERO la URL de "Local:" ahora se imprimirá en la nueva ventana de Terminal.
+  # Para leerla, necesitamos un mecanismo diferente o confiar en que se abre la Terminal.
+  # Para mantener la funcionalidad de apertura automática, podemos seguir leyendo el log,
+  # ya que `npm run dev` sigue imprimiendo allí.
+  if grep -q "Local:" "$NPM_OUTPUT_LOG"; then
     url=$(grep "Local:" "$NPM_OUTPUT_LOG" | grep -o 'http://[^ ]*' | head -1)
     if [[ -n "$url" ]]; then
       echo "🌐 Abriendo navegador en $url"
@@ -101,7 +108,8 @@ for i in $(seq 1 $TIMEOUT); do
 done
 
 if [ "$URL_FOUND" = false ]; then
-  echo "❌ No se encontró la URL local después de $TIMEOUT segundos. Revisa $NPM_OUTPUT_LOG para errores." # <--- Se usa la variable de ruta corregida aquí
+  echo "❌ No se encontró la URL local después de $TIMEOUT segundos. Revisa $NPM_OUTPUT_LOG para errores."
+  echo "Asegúrate de que la nueva ventana de Terminal se abrió y el servidor Vite se inició."
 fi
 
-echo "Script finalizado. El servidor de desarrollo Vue debería estar ejecutándose."
+echo "Script finalizado. Revisa la nueva ventana de Terminal para la salida de 'npm run dev'."
