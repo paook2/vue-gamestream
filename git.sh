@@ -62,9 +62,19 @@ git checkout "$MAIN_BRANCH" || { osascript -e "display alert \"Error: No se pudo
 echo "Actualizando $MAIN_BRANCH desde remoto..."
 git pull origin "$MAIN_BRANCH" || osascript -e "display alert \"No se pudo actualizar $MAIN_BRANCH.\" as warning"
 
-# 🚀 NUEVO: Asegurarse de que main local se empuje a main remoto después del pull
-echo "Empujando cambios de '$MAIN_BRANCH' a 'origin/$MAIN_BRANCH'..."
-git push origin "$MAIN_BRANCH" || osascript -e "display alert \"No se pudieron empujar los cambios de $MAIN_BRANCH a su remoto.\" as warning"
+# ✨ AÑADIDO: Volver a main y empujarla al remoto para asegurar que esté actualizada
+# Esto es *después* de que dev se haya actualizado y empujado, si queremos que main refleje algo.
+# Generalmente, main se actualiza jalando, no empujando directamente desde un script de flujo.
+# Si quieres que main se actualice con lo último que se empujó a dev y luego esto se refleje en main remoto,
+# el flujo ideal sería fusionar dev a main *después* y luego empujar main.
+# Sin embargo, si lo que quieres es que main remoto esté al día con main local (asumiendo que main local tiene lo correcto),
+# el push se debe hacer aquí.
+
+# IMPORTANTE: Si la rama main está protegida, este push directo puede fallar.
+# Solo descomenta y usa esta línea si estás seguro de que puedes hacer push directo a main.
+# echo "Empujando $MAIN_BRANCH al remoto para asegurar que esté actualizada..."
+# git push origin "$MAIN_BRANCH" || osascript -e "display alert \"No se pudo empujar $MAIN_BRANCH al remoto. Verifica el estado y los permisos.\" as warning"
+
 
 echo "Cambiando a la rama destino: $TARGET_BRANCH"
 git checkout "$TARGET_BRANCH" || { osascript -e "display alert \"Error: No se pudo cambiar a la rama $TARGET_BRANCH.\" as critical"; exit 1; }
@@ -90,10 +100,25 @@ git push origin "$TARGET_BRANCH" || osascript -e "display alert \"No se pudo emp
 
 echo "---"
 
+# Volver a main y empujarla al remoto para asegurar que esté actualizada
+# Esto es si el flujo es que dev (ya actualizada y empujada) se fusiona en main después.
+# Si este es el caso, debes hacer:
+echo "Cambiando a la rama principal: $MAIN_BRANCH (para push final de main si es necesario)"
+git checkout "$MAIN_BRANCH" || { osascript -e "display alert \"Error: No se pudo volver a la rama $MAIN_BRANCH para el push final.\" as critical"; exit 1; }
+echo "Fusionando $TARGET_BRANCH en $MAIN_BRANCH (si hay cambios de dev a main)..."
+git merge "$TARGET_BRANCH" || { osascript -e 'display alert "Conflictos al fusionar DEV en MAIN, resuélvelos manualmente en MAIN." as critical'; exit 1; }
+if ! git diff --cached --exit-code; then
+  echo "Comiteando cambios de la fusión de DEV en MAIN..."
+  git commit -m "Merge branch '$TARGET_BRANCH' into '$MAIN_BRANCH'" || { osascript -e "display alert \"No se pudo hacer commit de la fusión de DEV en MAIN.\" as critical"; exit 1; }
+fi
+echo "Empujando $MAIN_BRANCH al remoto..."
+git push origin "$MAIN_BRANCH" || osascript -e "display alert \"No se pudo empujar $MAIN_BRANCH al remoto.\" as critical"
+
+
 osascript -e 'display dialog "Proceso completado exitosamente." with title "Éxito" buttons {"OK"} default button 1'
 
 current_branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
-if [ "$current_branch" != "$TARGET_BRANCH" ] && [ -n "$current_branch" ]; then
+if [ "$current_branch" != "$MAIN_BRANCH" ] && [ -n "$current_branch" ]; then
   SHOULD_RETURN=$(osascript -e "display dialog \"¿Volver a la rama original '$current_branch'?\" buttons {\"No\", \"Sí\"} default button \"Sí\" with icon caution" -e 'button returned of result')
   if [[ "$SHOULD_RETURN" == "Sí" ]]; then
     echo "Volviendo a la rama original: $current_branch"
