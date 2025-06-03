@@ -105,18 +105,16 @@ PROJECT_VUE_PATH="/Users/paolazapatagonzalez/Downloads/Paola/LifeFile/Projects/v
 
 osascript <<EOF
 tell application "Terminal"
-    activate
+    activate # Asegura que Terminal esté activa y al frente
     if (count of windows) > 0 then
-        # Si la Terminal está abierta, abre una nueva pestaña
+        # Si la Terminal tiene ventanas abiertas, crea una nueva pestaña
         tell application "System Events" to keystroke "t" using command down
-        delay 0.5
-        # Ejecuta 'cd <ruta_proyecto> && git status' en la nueva pestaña.
-        # 'ignoring application responses' permite que el script de shell continúe inmediatamente.
+        delay 0.5 # Pequeña pausa para que la pestaña se cree
         ignoring application responses
             do script "cd \"${PROJECT_VUE_PATH}\" && git status" in selected tab of the front window
         end ignoring
     else
-        # Si la Terminal no está abierta, abre una nueva ventana y ejecuta el comando.
+        # Si la Terminal no tiene ventanas, abre una nueva ventana
         ignoring application responses
             do script "cd \"${PROJECT_VUE_PATH}\" && git status"
         end ignoring
