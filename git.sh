@@ -106,19 +106,20 @@ COMMAND_TO_RUN="cd \"${PROJECT_VUE_PATH}\" && git status"
 
 osascript <<EOF
 tell application "Terminal"
-    activate # Activa y trae Terminal al frente
-    delay 0.2 # Pequeña pausa para asegurar que esté lista
+    activate # Asegura que Terminal esté activa y al frente
+    delay 0.5 # Pausa para que la Terminal esté lista
 
     if (count of windows) > 0 then
         # Si la Terminal tiene ventanas abiertas, crea una nueva pestaña
+        # 'do script ""' primero para asegurar que la nueva pestaña esté vacía, luego el comando real.
+        tell application "Terminal" to do script "" in selected tab of the front window
+        delay 0.2 # Pequeña pausa
         tell application "System Events" to keystroke "t" using command down
-        delay 0.5 # Pausa para que la nueva pestaña se genere y esté lista
-        tell application "Terminal" to do script "" in selected tab of the front window # Borra cualquier texto previo si lo hay
-        tell application "System Events" to keystroke "${COMMAND_TO_RUN}" # "Escribe" el comando
-        tell application "System Events" to key code 36 # Simula presionar 'Return'
+        delay 0.5 # Pausa para que la nueva pestaña se cree
+        do script "${COMMAND_TO_RUN}" in selected tab of the front window
     else
-        # Si la Terminal no tiene ventanas, abre una nueva ventana y ejecuta el comando
-        tell application "Terminal" to do script "${COMMAND_TO_RUN}"
+        # Si la Terminal no tiene ventanas, abre una nueva ventana
+        do script "${COMMAND_TO_RUN}"
     end if
 end tell
 EOF
