@@ -62,9 +62,9 @@ git checkout "$MAIN_BRANCH" || { osascript -e "display alert \"Error: No se pudo
 echo "Actualizando $MAIN_BRANCH desde remoto..."
 git pull origin "$MAIN_BRANCH" || osascript -e "display alert \"No se pudo actualizar $MAIN_BRANCH.\" as warning"
 
-# 🚀 NUEVO: Empuja la rama main a su remoto después de actualizarla localmente
-echo "Empujando $MAIN_BRANCH al remoto para sincronizar cualquier cambio del pull..."
-git push origin "$MAIN_BRANCH" || osascript -e "display alert \"Advertencia: No se pudieron empujar los cambios de $MAIN_BRANCH al remoto.\" as warning"
+# 🚀 NUEVO: Asegurarse de que main local se empuje a main remoto después del pull
+echo "Empujando cambios de '$MAIN_BRANCH' a 'origin/$MAIN_BRANCH'..."
+git push origin "$MAIN_BRANCH" || osascript -e "display alert \"No se pudieron empujar los cambios de $MAIN_BRANCH a su remoto.\" as warning"
 
 echo "Cambiando a la rama destino: $TARGET_BRANCH"
 git checkout "$TARGET_BRANCH" || { osascript -e "display alert \"Error: No se pudo cambiar a la rama $TARGET_BRANCH.\" as critical"; exit 1; }
@@ -115,6 +115,7 @@ tell application "Terminal"
         tell application "System Events" to keystroke "t" using command down
         delay 0.5
         # Ejecuta 'cd <ruta_proyecto> && git status' en la nueva pestaña.
+        # 'ignoring application responses' permite que el script de shell continúe inmediatamente.
         ignoring application responses
             do script "cd \"${PROJECT_VUE_PATH}\" && git status" in selected tab of the front window
         end ignoring
