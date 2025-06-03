@@ -6,7 +6,7 @@ logs
 start_automator.sh
 git.sh
 automatorRunAll.app
-run.app
+run.app/*
 .prettierrc.json
 
 node_modules/
