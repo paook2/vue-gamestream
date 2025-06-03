@@ -38,6 +38,7 @@ if ! git diff --cached --exit-code; then
   
   current_branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
   if [ "$current_branch" != "HEAD" ] && [ -n "$current_branch" ]; then
+    # Se asume "Sí" para empujar los cambios de limpieza.
     echo "Empujando cambios de limpieza a 'origin/$current_branch'..."
     git push origin "$current_branch" || echo "Advertencia: No se pudieron empujar los cambios de limpieza. Puedes hacerlo manualmente."
   fi
@@ -82,11 +83,9 @@ if [ -n "$untracked_files" ] || [ -n "$staged_changes" ] || [ -n "$unstaged_chan
 
   current_branch_after_ops=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
   if [ "$current_branch_after_ops" != "HEAD" ] && [ -n "$current_branch_after_ops" ]; then
-    SHOULD_PUSH_PENDING=$(osascript -e "display dialog \"¿Deseas empujar estos cambios a 'origin/$current_branch_after_ops'?\" buttons {\"No\", \"Sí\"} default button \"Sí\" with icon caution" -e 'button returned of result')
-    if [[ "$SHOULD_PUSH_PENDING" == "Sí" ]]; then
-      echo "Empujando cambios pendientes..."
-      git push origin "$current_branch_after_ops" || echo "Advertencia: No se pudieron empujar los cambios pendientes. Puedes hacerlo manualmente después."
-    fi
+    # Se asume "Sí" para empujar estos cambios pendientes.
+    echo "Empujando cambios pendientes a 'origin/$current_branch_after_ops'..."
+    git push origin "$current_branch_after_ops" || echo "Advertencia: No se pudieron empujar los cambios pendientes. Puedes hacerlo manualmente después."
   fi
 else
   echo "No se encontraron cambios pendientes (archivos sin seguimiento, cambios staged o unstaged)."
@@ -157,7 +156,7 @@ osascript -e 'display dialog "¡Proceso completado exitosamente! Ahora, al ejecu
 git status
 
 if [ "$current_branch" != "$TARGET_BRANCH" ] && [ -n "$current_branch" ]; then
-  SHOULD_RETURN_TO_ORIGINAL=$(osascript -e "display dialog \"¿Deseas volver a tu rama original: '$current_branch'?\" buttons {\"No\", \"Sí\"} default button \"Sí\" with icon caution" -e 'button returned of result')
+  SHOULD_RETURN_TO_ORIGINAL=$(osascript -e "display dialog \"¿Deseas volver a tu rama original: '$current_branch'?\" buttons {"No", "Sí"} default button "Sí" with icon caution" -e 'button returned of result')
   if [[ "$SHOULD_RETURN_TO_ORIGINAL" == "Sí" ]]; then
     echo "Volviendo a tu rama original: $current_branch"
     git checkout "$current_branch" || osascript -e "display alert \"Advertencia: No se pudo volver a la rama original '$current_branch'.\" as warning"
