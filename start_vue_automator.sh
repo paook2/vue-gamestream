@@ -6,6 +6,8 @@ export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:$PAT
 
 PROJECT_PATH="/Users/paolazapatagonzalez/Downloads/Paola/LifeFile/Projects/vueJs/vue-gamestream"
 PROJECT_NAME="vue-gamestream"
+LOG_DIR="$PROJECT_PATH/logs"
+NPM_OUTPUT_LOG="$LOG_DIR/logs/npm_output.log"
 
 # Asegúrate de que el script cambie al directorio del proyecto
 cd "$PROJECT_PATH" || { echo "❌ No se pudo entrar a la carpeta del proyecto. Abortando." >&2; exit 1 }
@@ -16,13 +18,30 @@ if [[ "$PROJECT_PATH" == *"/Downloads/"* ]]; then
   echo "⚠ Estás trabajando desde la carpeta Downloads. Puede que Sublime solicite permisos."
 fi
 
+# --- Inicio del TRAP ---
+cleanup_on_exit() {
+  echo "🚨 Script terminando. Deteniendo proceso de npm run dev (PID: $NPM_PID)..."
+  if [ -n "$NPM_PID" ] && ps -p "$NPM_PID" > /dev/null; then
+    kill -TERM "$NPM_PID"
+    sleep 2
+    if ps -p "$NPM_PID" > /dev/null; then
+      echo "⚠️ El proceso de npm (PID: $NPM_PID) no se cerró amistosamente. Forzando cierre..."
+      kill -KILL "$NPM_PID"
+    fi
+  else
+    echo "ℹ️ No se encontró un proceso de npm run dev activo para detener."
+  fi
+  echo "✅ Limpieza completada."
+}
+
+trap cleanup_on_exit INT TERM EXIT
+# --- Fin del TRAP ---
+
 ---
 
-# Preguntar si el usuario quiere ejecutar el archivo git.sh
 SHOULD_RUN_HOLA=$(osascript -e 'display dialog "¿Quieres ejecutar el script \"git.sh\"?" buttons {"No", "Sí"} default button "Sí" with icon caution' -e 'button returned of result')
 
 if [[ "$SHOULD_RUN_HOLA" == "Sí" ]]; then
-  # Ruta al script git.sh
   HOLA_SCRIPT="$PROJECT_PATH/git.sh"
 
   if [ -f "$HOLA_SCRIPT" ]; then
@@ -45,7 +64,6 @@ fi
 
 echo "--- Continuando con el proyecto ---"
 
-# Abrir Sublime Text usando 'open -a' si 'subl' no funciona directamente.
 if ! command -v subl &> /dev/null; then
   echo "❌ 'subl' no está disponible directamente. Intentando abrir Sublime Text con 'open -a'."
   open -a "Sublime Text" "$PROJECT_PATH" &
@@ -54,32 +72,34 @@ else
   subl "$PROJECT_PATH" &
 fi
 
-sleep 2 # Pequeña pausa para permitir que Sublime se inicie
+sleep 2
 
 echo "📦 Ejecutando 'npm run dev'..."
-# Captura la salida de npm en un archivo de log para luego buscar la URL
-npm run dev > "$PROJECT_PATH/logs/npm_output.log" 2>&1 &
-NPM_PID=$! # Guarda el PID de npm para poder matarlo si es necesario
+mkdir -p "$LOG_DIR" || { echo "❌ No se pudo crear la carpeta de logs en '$LOG_DIR'. Abortando." >&2; exit 1; }
+
+npm run dev > "$NPM_OUTPUT_LOG" 2>&1 &
+NPM_PID=$!
 
 echo "Esperando la URL local..."
 URL_FOUND=false
-TIMEOUT=60 # Esperar hasta 60 segundos por la URL
+TIMEOUT=60
 
 for i in $(seq 1 $TIMEOUT); do
-  if grep -q "Local:" "$PROJECT_PATH/logs/npm_output.log"; then
-    url=$(grep "Local:" "$PROJECT_PATH/logs/npm_output.log" | grep -o 'http://[^ ]*' | head -1)
+  if grep -q "Local:" "$NPM_OUTPUT_LOG"; then
+    url=$(grep "Local:" "$NPM_OUTPUT_LOG" | grep -o 'http://[^ ]*' | head -1)
     if [[ -n "$url" ]]; then
       echo "🌐 Abriendo navegador en $url"
       open "$url"
       URL_FOUND=true
       break
+    X
     fi
   fi
   sleep 1
 done
 
 if [ "$URL_FOUND" = false ]; then
-  echo "❌ No se encontró la URL local después de $TIMEOUT segundos. Revisa $PROJECT_PATH/logs/npm_output.log para errores."
+  echo "❌ No se encontró la URL local después de $TIMEOUT segundos. Revisa $NPM_OUTPUT_LOG para errores."
 fi
 
 echo "Script finalizado. El servidor de desarrollo Vue debería estar ejecutándose."
