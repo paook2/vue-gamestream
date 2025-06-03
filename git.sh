@@ -16,7 +16,7 @@ echo "Iniciando proceso de limpieza automática de archivos trackeados ignorados
 declare -a FILES_TO_UNTRACK=(
   "node_modules/"
   ".prettierrc.json"
-  ".vscode/" # Añadido .vscode/ para ser des-trackeado automáticamente
+  ".vscode/"
   "dist/"
   "build/"
   "*.log"
@@ -49,46 +49,47 @@ echo "---"
 
 ---
 
-## Manejo de Archivos sin Seguimiento al Inicio
+## Manejo de Archivos sin Seguimiento y Cambios Locales
 
 echo ""
-echo "Verificando archivos sin seguimiento (untracked files)..."
+echo "Verificando estado del repositorio para cambios pendientes..."
 
+# Verificar si hay archivos sin seguimiento
 untracked_files=$(git status --porcelain | grep "^??" | awk '{print $2}')
+# Verificar si hay cambios staged (añadidos al índice)
+staged_changes=$(git diff --cached --name-only)
+# Verificar si hay cambios unstaged (modificados pero no añadidos)
+unstaged_changes=$(git diff --name-only)
 
-if [ -n "$untracked_files" ]; then
-  echo "Se encontraron los siguientes archivos sin seguimiento:"
-  echo "$untracked_files"
+# Determinar si hay algo que commitear
+if [ -n "$untracked_files" ] || [ -n "$staged_changes" ] || [ -n "$unstaged_changes" ]; then
+  echo "Se detectaron cambios pendientes (archivos sin seguimiento o modificaciones locales)."
 
-  SHOULD_ADD_UNTRACKED=$(osascript -e 'display dialog "¿Deseas añadir y commitear estos archivos ahora?" buttons {"No", "Sí"} default button "Sí" with icon caution' -e 'button returned of result')
+  # Añadir todos los cambios pendientes (sin seguimiento y modificados)
+  echo "Añadiendo todos los archivos y cambios modificados al área de preparación..."
+  git add . || { echo "Error: No se pudieron añadir los cambios. Abortando." >&2; exit 1; }
 
-  if [[ "$SHOULD_ADD_UNTRACKED" == "Sí" ]]; then
-    echo "Añadiendo archivos sin seguimiento..."
-    git add . || { echo "Error: No se pudieron añadir los archivos. Abortando." >&2; exit 1; }
+  # Preguntar por el mensaje de commit
+  COMMIT_MSG=$(osascript -e 'try' -e '  set T to text returned of (display dialog "Se han detectado cambios pendientes. Ingresa un mensaje para el commit:" default answer "feat: (automated) WIP changes detected")' -e '  return T' -e 'on error number -128' -e '  return ""' -e 'end try')
 
-    UNTRACKED_COMMIT_MSG=$(osascript -e 'try' -e '  set T to text returned of (display dialog "Ingresa un mensaje para el commit de estos archivos:" default answer "feat: Add new untracked files")' -e '  return T' -e 'on error number -128' -e '  return ""' -e 'end try')
+  if [ -z "$COMMIT_MSG" ]; then
+    COMMIT_MSG="feat: (automated) Committing detected changes"
+  fi
 
-    if [ -z "$UNTRACKED_COMMIT_MSG" ]; then
-      UNTRACKED_COMMIT_MSG="feat: Add new untracked files (automated)"
+  echo "Realizando commit de los cambios pendientes..."
+  git commit -m "$COMMIT_MSG" || { echo "Error: No se pudo realizar el commit de los cambios pendientes. Abortando." >&2; exit 1; }
+  echo "Cambios pendientes commiteados exitosamente."
+
+  current_branch_after_ops=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
+  if [ "$current_branch_after_ops" != "HEAD" ] && [ -n "$current_branch_after_ops" ]; then
+    SHOULD_PUSH_PENDING=$(osascript -e "display dialog \"¿Deseas empujar estos cambios a 'origin/$current_branch_after_ops'?\" buttons {\"No\", \"Sí\"} default button \"Sí\" with icon caution" -e 'button returned of result')
+    if [[ "$SHOULD_PUSH_PENDING" == "Sí" ]]; then
+      echo "Empujando cambios pendientes..."
+      git push origin "$current_branch_after_ops" || echo "Advertencia: No se pudieron empujar los cambios pendientes. Puedes hacerlo manualmente después."
     fi
-
-    echo "Realizando commit de los archivos sin seguimiento..."
-    git commit -m "$UNTRACKED_COMMIT_MSG" || { echo "Error: No se pudo realizar el commit de los archivos. Abortando." >&2; exit 1; }
-    echo "Archivos sin seguimiento commiteados exitosamente."
-
-    current_branch_before_ops=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
-    if [ "$current_branch_before_ops" != "HEAD" ] && [ -n "$current_branch_before_ops" ]; then
-      SHOULD_PUSH_INITIAL=$(osascript -e "display dialog \"¿Deseas empujar estos cambios iniciales a 'origin/$current_branch_before_ops'?\" buttons {\"No\", \"Sí\"} default button \"Sí\" with icon caution" -e 'button returned of result')
-      if [[ "$SHOULD_PUSH_INITIAL" == "Sí" ]]; then
-        echo "Empujando cambios iniciales..."
-        git push origin "$current_branch_before_ops" || echo "Advertencia: No se pudieron empujar los cambios iniciales. Puedes hacerlo manualmente después."
-      fi
-    fi
-  else
-    echo "Archivos sin seguimiento ignorados por ahora. El script continuará."
   fi
 else
-  echo "No se encontraron archivos sin seguimiento."
+  echo "No se encontraron cambios pendientes (archivos sin seguimiento, cambios staged o unstaged)."
 fi
 echo "---"
 
@@ -163,4 +164,4 @@ if [ "$current_branch" != "$TARGET_BRANCH" ] && [ -n "$current_branch" ]; then
   fi
 fi
 
-echo "---------------"
+echo "----------------------------------------------------"
