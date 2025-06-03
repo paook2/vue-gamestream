@@ -11,6 +11,7 @@ lerna-debug.log*
 start_automator.sh
 git_update.sh
 automatorRunAll.app
+run.app
 .prettierrc.json
 
 
