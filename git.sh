@@ -1,7 +1,7 @@
 #!/bin/zsh
 
 # 🔹 Abrir una pestaña nueva en Terminal con git status al inicio del script
-# Esto se ejecutará en el directorio actual donde se lance git.sh
+# Esto se ejecutará en el directorio actual donde se lance git.sh y el script principal continuará.
 osascript <<EOF
 tell application "Terminal"
     activate
@@ -9,15 +9,15 @@ tell application "Terminal"
         # Si la Terminal está abierta, abre una nueva pestaña
         tell application "System Events" to keystroke "t" using command down
         delay 0.5
-        # Ejecuta git status en la nueva pestaña y no espera la respuesta de la Terminal
-        # '$PWD' asegura que el comando se ejecute en el directorio actual del script
+        # Ejecuta 'cd $PWD && git status' en la nueva pestaña.
+        # 'ignoring application responses' permite que el script de shell continúe inmediatamente.
         ignoring application responses
-            do script "cd '$PWD'; git status" in selected tab of the front window
+            do script "cd '$PWD' && git status" in selected tab of the front window
         end ignoring
     else
-        # Si la Terminal no está abierta, abre una nueva ventana y ejecuta git status
+        # Si la Terminal no está abierta, abre una nueva ventana y ejecuta 'cd $PWD && git status'.
         ignoring application responses
-            do script "cd '$PWD'; git status"
+            do script "cd '$PWD' && git status"
         end ignoring
     end if
 end tell
