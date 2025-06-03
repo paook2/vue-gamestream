@@ -7,7 +7,7 @@ export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:$PAT
 PROJECT_PATH="/Users/paolazapatagonzalez/Downloads/Paola/LifeFile/Projects/vueJs/vue-gamestream"
 PROJECT_NAME="vue-gamestream"
 LOG_DIR="$PROJECT_PATH/logs"
-NPM_OUTPUT_LOG="$LOG_DIR/logs/npm_output.log"
+NPM_OUTPUT_LOG="$LOG_DIR/npm_output.log" # <--- Ruta corregida aquí
 
 # Asegúrate de que el script cambie al directorio del proyecto
 cd "$PROJECT_PATH" || { echo "❌ No se pudo entrar a la carpeta del proyecto. Abortando." >&2; exit 1 }
@@ -39,6 +39,9 @@ trap cleanup_on_exit INT TERM EXIT
 
 ---
 
+# Preguntar si el usuario quiere ejecutar el archivo git.sh
+# Forzar la activación de System Events para asegurar que el diálogo se muestre al frente
+osascript -e 'tell application "System Events" to activate' > /dev/null 2>&1
 SHOULD_RUN_HOLA=$(osascript -e 'display dialog "¿Quieres ejecutar el script \"git.sh\"?" buttons {"No", "Sí"} default button "Sí" with icon caution' -e 'button returned of result')
 
 if [[ "$SHOULD_RUN_HOLA" == "Sí" ]]; then
@@ -77,7 +80,7 @@ sleep 2
 echo "📦 Ejecutando 'npm run dev'..."
 mkdir -p "$LOG_DIR" || { echo "❌ No se pudo crear la carpeta de logs en '$LOG_DIR'. Abortando." >&2; exit 1; }
 
-npm run dev > "$NPM_OUTPUT_LOG" 2>&1 &
+npm run dev > "$NPM_OUTPUT_LOG" 2>&1 & # <--- Se usa la variable de ruta corregida aquí
 NPM_PID=$!
 
 echo "Esperando la URL local..."
@@ -85,21 +88,20 @@ URL_FOUND=false
 TIMEOUT=60
 
 for i in $(seq 1 $TIMEOUT); do
-  if grep -q "Local:" "$NPM_OUTPUT_LOG"; then
+  if grep -q "Local:" "$NPM_OUTPUT_LOG"; then # <--- Se usa la variable de ruta corregida aquí
     url=$(grep "Local:" "$NPM_OUTPUT_LOG" | grep -o 'http://[^ ]*' | head -1)
     if [[ -n "$url" ]]; then
       echo "🌐 Abriendo navegador en $url"
       open "$url"
       URL_FOUND=true
       break
-    X
     fi
   fi
   sleep 1
 done
 
 if [ "$URL_FOUND" = false ]; then
-  echo "❌ No se encontró la URL local después de $TIMEOUT segundos. Revisa $NPM_OUTPUT_LOG para errores."
+  echo "❌ No se encontró la URL local después de $TIMEOUT segundos. Revisa $NPM_OUTPUT_LOG para errores." # <--- Se usa la variable de ruta corregida aquí
 fi
 
 echo "Script finalizado. El servidor de desarrollo Vue debería estar ejecutándose."
