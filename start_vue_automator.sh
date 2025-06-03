@@ -67,14 +67,13 @@ mkdir -p "$LOG_DIR" || { echo "❌ No se pudo crear la carpeta de logs en '$LOG_
 # Elimina el contenido anterior del log para una ejecución limpia
 echo "" > "$NPM_OUTPUT_LOG"
 
-# Comando para abrir una nueva Terminal y ejecutar npm run dev
-# Usamos `zsh -l -c` para asegurar que el comando se ejecute en un shell de login (que carga ~/.zshrc)
-# pero de forma no interactiva, minimizando posibles problemas con compdef en ciertos contextos.
-# La salida de npm run dev se redirige al archivo de log dentro de esa Terminal.
+# Comando para abrir una nueva Terminal y ejecutar npm run dev.
+# Simplificamos el comando para que la Terminal primero se cambie al directorio,
+# y luego ejecute `npm run dev`, con su salida redirigida al log.
 osascript -e 'tell application "Terminal" to activate' \
           -e '  tell application "System Events" to keystroke "t" using command down' \
           -e '  delay 1' \
-          -e '  tell application "Terminal" to do script "cd \"'${PROJECT_PATH}'\" && zsh -l -c \"npm run dev > \\\"'${NPM_OUTPUT_LOG}'\\\" 2>&1\"" in front window' &
+          -e '  tell application "Terminal" to do script "cd \"'${PROJECT_PATH}'\" && npm run dev > \"'${NPM_OUTPUT_LOG}'\" 2>&1" in front window' &
 
 echo "Esperando que el servidor se inicie y obteniendo la URL local para abrir el navegador..."
 URL_FOUND=false
