@@ -20,7 +20,7 @@ if [[ "$SHOULD_RUN_GIT" == "Sí" ]]; then
 
   if [ -f "$GIT_SCRIPT" ]; then
     echo "🔄 Ejecutando script: '$GIT_SCRIPT'..."
-    "$GIT_SCRIPT"
+    "$GIT_SCRIPT" # Esto ejecutará el git.sh corregido
     if [ $? -eq 0 ]; then
       echo "✅ Script 'git.sh' completado."
     else
@@ -59,11 +59,15 @@ tell application "Terminal"
         # Si la Terminal está abierta, abre una nueva pestaña
         tell application "System Events" to keystroke "t" using command down
         delay 0.5
-        # Ejecuta el script temporal de npm en la nueva pestaña
-        do script "${TEMP_EXEC_SCRIPT}" in selected tab of the front window
+        # Ejecuta el script temporal de npm en la nueva pestaña y no espera la respuesta
+        ignoring application responses
+            do script "${TEMP_EXEC_SCRIPT}" in selected tab of the front window
+        end ignoring
     else
         # Si la Terminal no está abierta, abre una nueva ventana y ejecuta el script temporal
-        do script "${TEMP_EXEC_SCRIPT}"
+        ignoring application responses
+            do script "${TEMP_EXEC_SCRIPT}"
+        end ignoring
     end if
 end tell
 EOF
