@@ -113,7 +113,7 @@ if git diff --cached --exit-code; then
 else
   echo "Realizando commit de la fusión..."
   git commit -m "Merge branch '$MAIN_BRANCH' into '$TARGET_BRANCH'" || { osascript -e "display alert \"Error: No se pudo realizar el commit de la fusión.\" as critical"; exit 1; }
-fi
+fi 
 
 echo "Empujando los cambios a 'origin/$TARGET_BRANCH'..."
 git push origin "$TARGET_BRANCH" || { osascript -e "display alert \"Error: No se pudo empujar los cambios a 'origin/$TARGET_BRANCH'.\" as critical"; exit 1; }
