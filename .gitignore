@@ -1,37 +1,21 @@
 # Logs
 logs
 *.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
 
 .git-tools
 start_automator.sh
-git_update.sh
+git.sh
 automatorRunAll.app
-run.app
+run.app/*
 .prettierrc.json
+start_vue_automator.sh
+start_vue_terminal.sh
+kill_vite.sh
 
 node_modules/
 .DS_Store
-# dist
-# dist-ssr
-#coverage
-#*.local
-
-#/cypress/videos/
-#/cypress/screenshots/
 
 # Editor directories and files
-.vscode/*
-!.vscode/extensions.json
-.idea
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
+.vscode/
 
-#*.tsbuildinfo
+dist/
