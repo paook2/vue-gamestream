@@ -12,7 +12,7 @@ cd "$PROJECT_PATH" || { echo "❌ No se pudo acceder al directorio del proyecto.
 mkdir -p "$LOG_DIR" || { echo "❌ No se pudo crear la carpeta de logs en '$LOG_DIR'."; exit 1; }
 : > "$NPM_OUTPUT_LOG"
 
-# 🟡 Preguntar si se debe ejecutar git.sh
+# 🟡 NUEVO: Preguntar si se debe ejecutar git.sh
 SHOULD_RUN_GIT=$(osascript -e 'display dialog "¿Quieres ejecutar el script \"git.sh\"?" buttons {"No", "Sí"} default button "Sí" with icon caution' -e 'button returned of result')
 
 if [[ "$SHOULD_RUN_GIT" == "Sí" ]]; then
@@ -33,8 +33,8 @@ else
   echo "⏩ Saltando ejecución de 'git.sh'."
 fi
 
-# Ejecutar npm run dev desde script temporal
-echo "📦 Ejecutando 'npm run dev' en nueva pestaña de Terminal..."
+# Continuar con npm run dev
+echo "📦 Ejecutando 'npm run dev' en nueva ventana de Terminal..."
 
 NPM_BIN_PATH="$(which npm)"
 if [ -z "$NPM_BIN_PATH" ]; then
@@ -51,21 +51,13 @@ EOF
 
 chmod +x "$TEMP_EXEC_SCRIPT"
 
-# 🟢 Terminal: nueva pestaña si ya hay ventana abierta
 osascript <<EOF
 tell application "Terminal"
     activate
-    if (count of windows) > 0 then
-        tell application "System Events" to keystroke "t" using command down
-        delay 0.5
-        do script "${TEMP_EXEC_SCRIPT}" in selected tab of the front window
-    else
-        do script "${TEMP_EXEC_SCRIPT}"
-    end if
+    do script "${TEMP_EXEC_SCRIPT}"
 end tell
 EOF
 
-# Esperar a que npm dev devuelva una URL
 echo "⌛ Esperando URL local..."
 URL_FOUND=false
 TIMEOUT=60
