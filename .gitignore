@@ -11,16 +11,6 @@ run.app
 
 node_modules/
 .DS_Store
-run.app/*
-# dist
-# dist-ssr
-#coverage
-#*.local
-
-#/cypress/videos/
-#/cypress/screenshots/
 
 # Editor directories and files
-.vscode/*
-
-#*.tsbuildinfo
+.vscode/
