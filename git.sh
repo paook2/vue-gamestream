@@ -1,30 +1,40 @@
 #!/bin/zsh
 
-# 🔹 Abrir una pestaña nueva en Terminal con git status al inicio del script
-# Y continuar la ejecución del script principal
-osascript <<EOF
-tell application "Terminal"
-    activate
-    if (count of windows) > 0 then
-        # Si la Terminal está abierta, abre una nueva pestaña
-        tell application "System Events" to keystroke "t" using command down
-        delay 0.5
-        # Ejecuta git status en la nueva pestaña y no espera la respuesta de la Terminal
-        ignoring application responses
-            do script "cd '$PWD'; git status" in selected tab of the front window
-        end ignoring
-    else
-        # Si la Terminal no está abierta, abre una nueva ventana y ejecuta git status
-        ignoring application responses
-            do script "cd '$PWD'; git status"
-        end ignoring
-    end if
-end tell
-EOF
-
 osascript -e 'display dialog "Bienvenido a GIT" with title "Mensaje de git.sh" buttons {"OK"} default button 1'
 
 echo "--- Automatización de Fusión y Push en Git ---"
+
+# --- Limpieza automática de archivos ignorados que estén trackeados
+declare -a FILES_TO_UNTRACK=(
+  "node_modules/"
+  ".prettierrc.json"
+  ".vscode/"
+  "dist/"
+  "build/"
+  "*.log"
+)
+
+for item in "${FILES_TO_UNTRACK[@]}"; do
+  if git ls-files --error-unmatch "$item" &>/dev/null; then
+    echo "Des-trackeando '$item'..."
+    git rm -r --cached "$item" || echo "Advertencia: No se pudo des-trackear '$item'."
+  else
+    echo "'$item' no está trackeado o ya fue des-trackeado. Saltando."
+  fi
+done
+
+if ! git diff --cached --exit-code; then
+  echo "Realizando commit de la limpieza de archivos ignorados..."
+  git commit -m "chore: Stop tracking ignored files/folders" || { osascript -e "display alert \"Error: No se pudo realizar el commit de la limpieza.\" as critical"; exit 1; }
+  
+  current_branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
+  if [ "$current_branch" != "HEAD" ] && [ -n "$current_branch" ]; then
+    echo "Empujando cambios de limpieza a 'origin/$current_branch'..."
+    git push origin "$current_branch" || echo "Advertencia: No se pudieron empujar los cambios de limpieza."
+  fi
+else
+  echo "No se encontraron archivos ignorados para limpiar."
+fi
 
 echo "---"
 
@@ -120,5 +130,3 @@ if [ "$current_branch" != "$TARGET_BRANCH" ] && [ -n "$current_branch" ]; then
 fi
 
 echo "---"
-
-exit 0
