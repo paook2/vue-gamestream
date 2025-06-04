@@ -118,16 +118,13 @@ tell application "Terminal"
     activate
     if (count of windows) > 0 then
         tell application "System Events" to keystroke "t" using command down
-        delay 0.5
-        ignoring application responses
-            do script "cd \"${PROJECT_VUE_PATH}\" && git status" in selected tab of the front window
-        end ignoring
+        delay 1
+        do script "cd \"${PROJECT_VUE_PATH}\" && git status" in selected tab of the front window
     else
-        ignoring application responses
-            do script "cd \"${PROJECT_VUE_PATH}\" && git status"
-        end ignoring
+        do script "cd \"${PROJECT_VUE_PATH}\" && git status"
     end if
 end tell
 EOF
+
 
 exit 0
