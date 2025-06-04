@@ -2,17 +2,10 @@
 logs
 *.log
 
-.git-tools
-start_automator.sh
-git.sh
-automatorRunAll.app
-run.app/*
-.prettierrc.json
-start_vue_automator.sh
-start_vue_terminal.sh
-kill_vite.sh
-
 zsh/*
+automatorRunAll.app
+
+.prettierrc.json
 
 node_modules/
 .DS_Store
