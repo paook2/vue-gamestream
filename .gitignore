@@ -12,7 +12,7 @@ start_vue_automator.sh
 start_vue_terminal.sh
 kill_vite.sh
 
-zsh/run_npm_dev_temp.sh
+zsh/*
 
 node_modules/
 .DS_Store

@@ -62,20 +62,6 @@ git checkout "$MAIN_BRANCH" || { osascript -e "display alert \"Error: No se pudo
 echo "Actualizando $MAIN_BRANCH desde remoto..."
 git pull origin "$MAIN_BRANCH" || osascript -e "display alert \"No se pudo actualizar $MAIN_BRANCH.\" as warning"
 
-# ✨ AÑADIDO: Volver a main y empujarla al remoto para asegurar que esté actualizada
-# Esto es *después* de que dev se haya actualizado y empujado, si queremos que main refleje algo.
-# Generalmente, main se actualiza jalando, no empujando directamente desde un script de flujo.
-# Si quieres que main se actualice con lo último que se empujó a dev y luego esto se refleje en main remoto,
-# el flujo ideal sería fusionar dev a main *después* y luego empujar main.
-# Sin embargo, si lo que quieres es que main remoto esté al día con main local (asumiendo que main local tiene lo correcto),
-# el push se debe hacer aquí.
-
-# IMPORTANTE: Si la rama main está protegida, este push directo puede fallar.
-# Solo descomenta y usa esta línea si estás seguro de que puedes hacer push directo a main.
-# echo "Empujando $MAIN_BRANCH al remoto para asegurar que esté actualizada..."
-# git push origin "$MAIN_BRANCH" || osascript -e "display alert \"No se pudo empujar $MAIN_BRANCH al remoto. Verifica el estado y los permisos.\" as warning"
-
-
 echo "Cambiando a la rama destino: $TARGET_BRANCH"
 git checkout "$TARGET_BRANCH" || { osascript -e "display alert \"Error: No se pudo cambiar a la rama $TARGET_BRANCH.\" as critical"; exit 1; }
 
@@ -100,9 +86,6 @@ git push origin "$TARGET_BRANCH" || osascript -e "display alert \"No se pudo emp
 
 echo "---"
 
-# Volver a main y empujarla al remoto para asegurar que esté actualizada
-# Esto es si el flujo es que dev (ya actualizada y empujada) se fusiona en main después.
-# Si este es el caso, debes hacer:
 echo "Cambiando a la rama principal: $MAIN_BRANCH (para push final de main si es necesario)"
 git checkout "$MAIN_BRANCH" || { osascript -e "display alert \"Error: No se pudo volver a la rama $MAIN_BRANCH para el push final.\" as critical"; exit 1; }
 echo "Fusionando $TARGET_BRANCH en $MAIN_BRANCH (si hay cambios de dev a main)..."
@@ -113,7 +96,6 @@ if ! git diff --cached --exit-code; then
 fi
 echo "Empujando $MAIN_BRANCH al remoto..."
 git push origin "$MAIN_BRANCH" || osascript -e "display alert \"No se pudo empujar $MAIN_BRANCH al remoto.\" as critical"
-
 
 osascript -e 'display dialog "Proceso completado exitosamente." with title "Éxito" buttons {"OK"} default button 1'
 
@@ -128,24 +110,19 @@ fi
 
 echo "---"
 
-# 🔹 Abrir una pestaña nueva en Terminal con git status al final del script
-# Esto se ejecutará en la carpeta específica del proyecto vue-gamestream
+# 🔹 Abrir nueva pestaña en Terminal con git status en el proyecto
 PROJECT_VUE_PATH="/Users/paolazapatagonzalez/Downloads/Paola/LifeFile/Projects/vueJs/vue-gamestream"
 
 osascript <<EOF
 tell application "Terminal"
     activate
     if (count of windows) > 0 then
-        # Si la Terminal está abierta, abre una nueva pestaña
         tell application "System Events" to keystroke "t" using command down
         delay 0.5
-        # Ejecuta 'cd <ruta_proyecto> && git status' en la nueva pestaña.
-        # 'ignoring application responses' permite que el script de shell continúe inmediatamente.
         ignoring application responses
             do script "cd \"${PROJECT_VUE_PATH}\" && git status" in selected tab of the front window
         end ignoring
     else
-        # Si la Terminal no está abierta, abre una nueva ventana y ejecuta el comando.
         ignoring application responses
             do script "cd \"${PROJECT_VUE_PATH}\" && git status"
         end ignoring
