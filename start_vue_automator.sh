@@ -64,7 +64,7 @@ chmod +x "$TEMP_EXEC_SCRIPT"
 osascript <<EOF
 tell application "Terminal"
     activate
-    do script "zsh '${TEMP_EXEC_SCRIPT}'"
+    do script "${TEMP_EXEC_SCRIPT}"
 end tell
 EOF
 
