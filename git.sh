@@ -86,6 +86,7 @@ git push origin "$TARGET_BRANCH" || osascript -e "display alert \"No se pudo emp
 
 echo "---"
 
+# Volver a main y empujarla al remoto para asegurar que esté actualizada
 echo "Cambiando a la rama principal: $MAIN_BRANCH (para push final de main si es necesario)"
 git checkout "$MAIN_BRANCH" || { osascript -e "display alert \"Error: No se pudo volver a la rama $MAIN_BRANCH para el push final.\" as critical"; exit 1; }
 echo "Fusionando $TARGET_BRANCH en $MAIN_BRANCH (si hay cambios de dev a main)..."
@@ -110,22 +111,25 @@ fi
 
 echo "---"
 
-# 🔹 Abrir nueva pestaña en Terminal con git status en el proyecto
-PROJECT_VUE_PATH="/Users/paolazapatagonzalez/Downloads/Paola/LifeFile/Projects/vueJs/vue-gamestream"
+# 🔹 Crear script temporal para mostrar git status en nueva ventana de Terminal
+PROJECT_PATH="$HOME/Downloads/Paola/LifeFile/Projects/vueJs/vue-gamestream"
+TEMP_GIT_STATUS_SCRIPT="$PROJECT_PATH/zsh/git_status_temp.sh"
 
+cat > "$TEMP_GIT_STATUS_SCRIPT" <<EOF
+#!/bin/zsh
+cd "${PROJECT_PATH}" || exit 1
+git status
+exec zsh
+EOF
+
+chmod +x "$TEMP_GIT_STATUS_SCRIPT"
+
+# 🔹 Abrir nueva ventana de Terminal y ejecutar el script temporal
 osascript <<EOF
 tell application "Terminal"
     activate
-    if (count of windows) = 0 then
-        do script "cd \"${PROJECT_VUE_PATH}\" && git status"
-    else
-        tell application "System Events" to keystroke "t" using command down
-        delay 0.5
-        set newTab to do script "cd \"${PROJECT_VUE_PATH}\" && git status" in selected tab of the front window
-    end if
+    do script "${TEMP_GIT_STATUS_SCRIPT}"
 end tell
 EOF
-
-
 
 exit 0
