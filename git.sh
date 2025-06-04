@@ -116,15 +116,16 @@ PROJECT_VUE_PATH="/Users/paolazapatagonzalez/Downloads/Paola/LifeFile/Projects/v
 osascript <<EOF
 tell application "Terminal"
     activate
-    if (count of windows) > 0 then
-        tell application "System Events" to keystroke "t" using command down
-        delay 1
-        do script "cd \"${PROJECT_VUE_PATH}\" && git status" in selected tab of the front window
-    else
+    if (count of windows) = 0 then
         do script "cd \"${PROJECT_VUE_PATH}\" && git status"
+    else
+        tell application "System Events" to keystroke "t" using command down
+        delay 0.5
+        set newTab to do script "cd \"${PROJECT_VUE_PATH}\" && git status" in selected tab of the front window
     end if
 end tell
 EOF
+
 
 
 exit 0
