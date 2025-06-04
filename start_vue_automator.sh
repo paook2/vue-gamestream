@@ -7,7 +7,7 @@ PROJECT_PATH="$HOME/Downloads/Paola/LifeFile/Projects/vueJs/vue-gamestream"
 LOG_DIR="$PROJECT_PATH/logs"
 NPM_OUTPUT_LOG="$LOG_DIR/npm_output.log"
 TEMP_EXEC_SCRIPT="$PROJECT_PATH/zsh/run_npm_dev_temp.sh"
-GIT_SCRIPT="$PROJECT_PATH/git.sh"
+GIT_SCRIPT="$PROJECT_PATH/zsh/git.sh"
 
 # ▸ Validar ruta de proyecto
 if ! cd "$PROJECT_PATH"; then
